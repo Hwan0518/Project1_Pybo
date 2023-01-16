@@ -1,0 +1,150 @@
+<!-- 템플릿 상속을 사용 : extends를 사용 -->
+{% extends 'base.html' %}
+<!-- 사용자 정의 필터함수를 사용한다, 이는 extends문 다음에 위치해야 한다-->
+{% load pybo_filter %}
+<!-- 이 템플릿에서만 사용할 내용을 block content에 작성 -->
+{% block content %}
+<div class="container my-3">
+    <!-- 검색 기능 추가 -->
+    <div class="row my-3">
+        <div class="col-6">
+            <a href="{% url 'pybo:question_create' %}" class="btn btn-primary">질문 등록하기</a>
+        </div>
+        <div class="col-6">
+            <div class="input-group">
+                <input type="text" id="search_kw" class="form-control" value="{{ kw|default_if_none:'' }}">
+                <div class="=input-group-append">
+                    <button class="btn btn-outline-secondary" type="button" id="btn_search">찾기</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <table class="table">
+        <thead>
+        <tr class="text-center table-dark"> <!-- th엘리먼트를 가운데 정렬한다-->
+            <th>번호</th>
+            <th style="width:50%">제목</th>
+            <th>글쓴이</th>
+            <th>작성일시</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% if question_list %}
+        {% for question in question_list %}
+        <tr class="text-center">
+            <!-- 게시글 번호 = 전체 게시글 건수 - 해당페이지 시작인덱스 - 해당페이지에 해당게시물 인덱스 +1 -->
+            <td>{{ question_list.paginator.count|sub:question_list.start_index|sub:forloop.counter0|add:1 }}</td>
+            <td class="text-start"> <!-- 제목을 왼쪽정렬한다 -->
+                <a href="{% url 'pybo:detail' question.id %}">{{ question.subject }}</a>
+                {% if question.answer_set.count >= 0 %}
+                <span class="text-danger small mx-2"> ({{ question.answer_set.count }})</span>
+                {% endif %}
+            </td>
+            <td>{{ question.author.username }}</td> <!--글쓴이 추가-->
+            <td>{{ question.create_date }}</td>
+        </tr>
+        {% endfor %}
+        {% else %}
+        <tr>
+            <td colspan="4">질문이 없습니다.</td> <!-- table 항목이 4개: 번호,제목,글쓴이,작성일시-->
+        </tr>
+        {% endif %}
+        </tbody>
+    </table>
+    <!-- 페이징처리 시작 -->
+    <ul class="pagination justify-content-center">
+        <!-- 맨 처음 페이지 -->
+        <li class="page-item">
+            <a class="page-link" href="?page={{ question_list.final_index }}">처음</a>
+        </li>
+        <!-- 이전 페이지 -->
+        {% if question_list.has_previous %} <!-- 이전페이지가 있다면 "이전"링크가 활성화-->
+        <li class="page-item">
+            <a class="page-link" data-page="{{ question_list.previous_page_number }}"
+               href="javascript:void(0)">이전</a>
+        </li>
+        {% else %}
+        <li class="page-item disabled">
+            <a class="page-link" tabindex="-1" aria-disabled="true" href="#">이전</a>
+        </li>
+        {% endif %}
+        <!-- 페이지리스트 -->
+        {% for page_number in question_list.paginator.page_range %}
+        {% if page_number >= question_list.number|add:-5 and page_number <= question_list.number|add:5 %} <!-- 현재 페이지 기준으로, 좌우 5개의 페이지만 표시-->
+        {% if page_number == question_list.number %}
+        <li class="page-item active" aria-current="page">
+            <a class="page-link" data-page="{{ page_number }}"
+                href="javascript:void(0)">{{ page_number }}</a>
+        </li>
+        {% else %}
+        <li class="page-item">
+            <a class="page-link" data-page="{{ page_number }}"
+                href="javascript:void(0)">{{ page_number }}</a>
+        </li>
+        {% endif %}
+        {% endif %}
+        {% endfor %}
+        <!-- 다음 페이지 -->
+        {% if question_list.has_next %} <!-- 다음페이지가 있다면 "다음"링크 활성화-->
+        <li class="page-item">
+            <a class="page-link" data-page="{{ question_list.next_page_number }}"
+               href="javascript:void(0)">다음</a>
+        </li>
+        {% else %}
+        <li class="page-item disabled">
+            <a class="page-link" tabindex="-1" aria-disabled="true" href="#">다음</a>
+        </li>
+        {% endif %}
+        <!-- 맨 끝 페이지 -->
+        <li class="page-item">
+            <a class="page-link" href="?page={{ question_list.paginator.count }}">마지막</a>
+        </li>
+    </ul>
+    <!-- 페이징 처리 끝 -->
+</div>
+<form id="searchForm" method="get" action="{% url 'index' %}">
+    <input type="hidden" id="kw" name="kw" value="{{ kw|default_if_none:'' }}">
+    <input type="hidden" id="page" name="page" value="{{ page }}">
+</form>
+{% endblock %}
+<!-- page,kw 파라미터를 동시에 요청-->
+{% block script %}
+<script type="text/javascript">
+const page_elements = document.getElementsByClassName("page-link");
+Array.from(page_elements).forEach(function(element) {
+    element.addEventListener('click', function() {
+        document.getElementById('page').value = this.dataset.page;
+        document.getElementById('searchForm').submit();
+    });
+});
+const btn_search = document.getElementById("btn_search");
+btn_search.addEventListener('click', function() {
+    document.getElementById('kw').value = document.getElementById('search_kw').value;
+    document.getElementById('page').value = 1;          // 검색버튼을 클릭할 경우 1페이지부터 조회
+    document.getElementById('searchForm').submit();
+});
+</script>
+{% endblock %}
+
+
+
+
+
+
+
+
+
+
+
+<!-- <ul> 태그로 심플하게 작성했던 질문 목록
+{% if question_list %}
+    <ul>
+    {% for question in question_list %}
+        <li><a href="{% url 'pybo:detail' question.id %}">{{ question.subject }}</a>
+        </li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>질문이 없습니다.</p>
+{% endif %}
+-->
