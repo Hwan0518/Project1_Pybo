@@ -5,6 +5,7 @@ from ..models import Question
 
 
 def index(request):
+    3/0 # 오류 테스트를 위해서 강제로 오류발생
     page = request.GET.get('page','1') #GET방식으로 호출된 URL에서, page값을 가져올 때 사용, 디폴트값은 1
     kw = request.GET.get('kw', '') #검색어
     question_list = Question.objects.order_by('-create_date') #빠른 시간순으로 정렬
